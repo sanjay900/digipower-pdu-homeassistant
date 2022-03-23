@@ -137,6 +137,7 @@ class DigipowerPDU:
             return restable[0][-1]
 
     async def set_port_state(self, port: int, state: bool):
+        self.time_since_change = time.time()
         self.active_ports[port] = state
         errindication, errstatus, errindex, restable = await setCmd(
             self.dispatcher,
@@ -155,7 +156,6 @@ class DigipowerPDU:
                                 errindex and restable[-1][int(errindex) - 1] or "?")
 
     def get_port_state(self, port: int):
-        self.time_since_change = time.time()
         return self.active_ports[port]
 
     def get_port_name(self, port: int):
