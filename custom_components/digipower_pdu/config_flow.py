@@ -49,9 +49,9 @@ class DigipowerPDUFlowHandler(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=name,
                     data={
-                        CONF_COMMUNITY: user_input[CONF_COMMUNITY].value,
-                        CONF_HOST: user_input[CONF_HOST].value,
-                        CONF_PORT: user_input[CONF_PORT].value,
+                        CONF_COMMUNITY: user_input[CONF_COMMUNITY],
+                        CONF_HOST: user_input[CONF_HOST],
+                        CONF_PORT: user_input[CONF_PORT],
                     },
                 )
 

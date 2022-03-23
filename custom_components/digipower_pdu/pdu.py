@@ -29,6 +29,7 @@ from pysnmp.proto.rfc1902 import (
 
 SNMP_VERSIONS = {"1": 0, "2c": 1, "3": None}
 
+
 class SNMPException(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
@@ -44,8 +45,6 @@ class OIDs(Enum):
     TEMPERATURE = "1.3.6.1.4.1.17420.1.2.7.0"
     HUMIDITY = "1.3.6.1.4.1.17420.1.2.8.0"
     SWITCH_COUNT = "1.3.6.1.2.1.1.7.0"
-    def SWITCH_NAME_BY_ID(
-        self, x): return "1.3.6.1.4.1.17420.1.2.9.1.14.%d.0" % x
     ACTIVE_SWITCHES = "1.3.6.1.4.1.17420.1.2.9.1.13.0"
     MODEL_NUMBER = "1.3.6.1.4.1.17420.1.2.9.1.19.0"
     MODEL_NAME = "1.3.6.1.4.1.17420.1.2.9.1.18.0"
@@ -59,7 +58,7 @@ class OIDs(Enum):
     MAIN_ENERGY = "1.3.6.1.4.1.17420.1.3.6.0"
     ACCUMLATING_ENERGY = "1.3.6.1.4.1.17420.1.3.8.0"
     CARBON_EMMISION_RATE = "1.3.6.1.4.1.17420.1.3.10.0"
-
+    SWITCH_NAME_BY_ID = "1.3.6.1.4.1.17420.1.2.9.1.14.%d.0"  
 
 class DigipowerPDU:
     def __init__(self, host, port, community) -> None:
@@ -84,15 +83,16 @@ class DigipowerPDU:
             self.community, mpModel=SNMP_VERSIONS["1"])
         self.transport_target = UdpTransportTarget((self.host, self.port))
         self.context = ContextData()
+        self.names = []
 
     async def update(self):
         if self.has_humidity:
-            self.humidity = int(await self._snmp_get(OIDs.HUMIDITY)) or 0
+            self.humidity = int(await self._snmp_get(OIDs.HUMIDITY.value)) or 0
         if self.has_temp:
-            self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE)) or 0
-        self.current = int(await self._snmp_get(OIDs.CURRENT)) or 0
+            self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE.value)) or 0
+        self.current = int(await self._snmp_get(OIDs.CURRENT.value)) or 0
         self.current /= 10
-        self.active_ports = str(await self._snmp_get(OIDs.ACTIVE_SWITCHES)).split(",")
+        self.active_ports = str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")
         return self
 
     async def init(self):
@@ -100,27 +100,31 @@ class DigipowerPDU:
         self.has_temp = True
         await self.update()
         self.mac = await self._snmp_get(OIDs.MAC) or ""
-        self.devicename = str(await self._snmp_get(OIDs.DEVICE_NAME)) or ""
-        self.model = str(await self._snmp_get(OIDs.MODEL_NAME)) or ""
-        self.model_number = str(await self._snmp_get(OIDs.MODEL_NUMBER)) or ""
-        self.model_short = str(await self._snmp_get(OIDs.MODEL_NAME_SHORT)) or ""
+        self.devicename = str(await self._snmp_get(OIDs.DEVICE_NAME.value)) or ""
+        self.model = str(await self._snmp_get(OIDs.MODEL_NAME.value)) or ""
+        self.model_number = str(await self._snmp_get(OIDs.MODEL_NUMBER.value)) or ""
+        self.model_short = str(await self._snmp_get(OIDs.MODEL_NAME_SHORT.value)) or ""
         self.has_humidity = self.humidity != 0
         self.has_temp = self.temperature != 0
-        self.port_count = int(await self._snmp_get(OIDs.SWITCH_COUNT)) + 1
+        self.port_count = int(await self._snmp_get(OIDs.SWITCH_COUNT.value)) + 1
+        self.switch_names = [
+            (await self._snmp_get(OIDs.SWITCH_NAME_BY_ID % port))
+            for port in range(1, self.port_count + 1)
+        ]
 
-    async def _snmp_get(self, oid: OIDs):
+    async def _snmp_get(self, oid: str):
         errindication, errstatus, errindex, restable = await getCmd(
             self.dispatcher,
             self.community_data,
             self.transport_target,
             self.context,
-            ObjectType(ObjectIdentity(oid.value))
+            ObjectType(ObjectIdentity(oid))
         )
         if errindication:
             raise SNMPException("SNMP error: {}".format(errindication))
         elif errstatus:
             raise SNMPException("SNMP error: {} at {}", errstatus.prettyPrint(),
-                errindex and restable[-1][int(errindex) - 1] or "?")
+                                errindex and restable[-1][int(errindex) - 1] or "?")
         else:
             return restable[0][-1]
 
@@ -132,7 +136,7 @@ class DigipowerPDU:
             self.transport_target,
             self.context,
             ObjectType(
-                ObjectIdentity("1.3.6.1.4.1.17420.1.2.9.1.13.0"),
+                ObjectIdentity(OIDs.ACTIVE_SWITCHES.value),
                 OctetString(",".join(self.active_ports)),
             ),
         )
@@ -140,7 +144,7 @@ class DigipowerPDU:
             raise SNMPException("SNMP error: {}".format(errindication))
         elif errstatus:
             raise SNMPException("SNMP error: {} at {}", errstatus.prettyPrint(),
-                errindex and restable[-1][int(errindex) - 1] or "?")
+                                errindex and restable[-1][int(errindex) - 1] or "?")
 
     def get_port_state(self, port: int):
         return self.active_ports[port]
