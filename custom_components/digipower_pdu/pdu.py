@@ -150,7 +150,6 @@ class DigipowerPDU:
         elif errstatus:
             raise SNMPException("SNMP error: {} at {}", errstatus.prettyPrint(),
                                 errindex and restable[-1][int(errindex) - 1] or "?")
-        await asyncio.sleep(1) 
         self.active_ports[port] = state
 
     def get_port_state(self, port: int):
