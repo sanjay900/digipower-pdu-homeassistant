@@ -51,7 +51,7 @@ class DigipowerPort(CoordinatorEntity, SwitchEntity):
         """Initialize the sensor."""
         super().__init__(coordinator=coordinator)
         self._name = device.get_port_name(port)
-        self.entity_id = "{}.{}_port_{}".format(COMPONENT_DOMAIN, device.devicename.lower().replace(" ",""),chr(ord('a')+port))
+        self.entity_id = "{}.{}_port_{}".format(COMPONENT_DOMAIN, device.devicename.lower().replace(" ","_"),chr(ord('a')+port))
         self._device = device
         self._port = port
         self._unique_id = "{}_{}_port_{}".format(entry_id,device.mac,chr(ord('a')+port))
