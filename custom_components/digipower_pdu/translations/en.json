@@ -1,0 +1,23 @@
+{
+    "config": {
+        "abort": {
+            "already_setup": "Already configured. Only a single configuration possible.",
+            "authorize_url_timeout": "Timeout generating authorize URL.",
+            "connection_error": "Failed to connect"
+        },
+        "create_entry": {
+            "default": "Successfully authenticated"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "community": "PDU SNMP Community",
+                    "host": "PDU Hostname / IP Address",
+                    "port": "PDU SNMP Port"
+                },
+                "description": "Set up a digipower pdu to integrate with Home Assistant.",
+                "title": "Digipower PDU"
+            }
+        }
+    }
+}

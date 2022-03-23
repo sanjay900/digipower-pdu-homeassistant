@@ -1,0 +1,16 @@
+{
+    "config": {
+      "step": {
+        "user": {
+          "description": "Set up a digipower pdu to integrate with Home Assistant.",
+          "data": {
+            "community": "PDU SNMP Community",
+            "host": "PDU Hostname / IP Address",
+            "port": "PDU SNMP Port"
+          }
+        }
+      },
+      "error": {}
+    }
+  }
+  
