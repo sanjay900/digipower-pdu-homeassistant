@@ -103,6 +103,7 @@ class DigipowerPDU:
     async def init(self):
         self.has_humidity = True
         self.has_temp = True
+        self.initialised = True
         await self.update()
         self.mac = await self._snmp_get(OIDs.MAC.value) or ""
         self.devicename = str(await self._snmp_get(OIDs.DEVICE_NAME.value)) or ""
