@@ -13,7 +13,7 @@ ATTR_CURRENT = "current"
 
 DOMAIN = "digipower_pdu"
 
-SCAN_INTERVAL = timedelta(seconds=1)
+SCAN_INTERVAL = timedelta(seconds=10)
 SERVICE_PDU: Final = "digipower_pdu"
 
 LOGGER = logging.getLogger(__name__)
