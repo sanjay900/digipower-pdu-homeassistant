@@ -95,7 +95,7 @@ class DigipowerPDU:
         if self.has_temp:
             self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE.value)) or 0
         self.current = (int(await self._snmp_get(OIDs.CURRENT.value)) or 0) / 10.0
-        self.active_ports = str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")
+        self.active_ports = [bool(x) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
         return self
 
     async def init(self):
