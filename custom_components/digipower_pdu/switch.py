@@ -48,6 +48,7 @@ class DigipowerPort(CoordinatorEntity, SwitchEntity):
 
     def __init__(self, coordinator: DataUpdateCoordinator, entry_id: str, device: DigipowerPDU, port: int):
         """Initialize the sensor."""
+        super().__init__(coordinator=coordinator)
         self._name = "{} - Port {}".format(device.devicename, port)
         self._device = device
         self._port = port

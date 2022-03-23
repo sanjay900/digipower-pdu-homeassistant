@@ -53,6 +53,7 @@ class DigipowerHumiditySensor(CoordinatorEntity, SensorEntity):
 
     def __init__(self, coordinator: DataUpdateCoordinator, entry_id: str, device: DigipowerPDU):
         """Initialize the sensor."""
+        super().__init__(coordinator=coordinator)
         self._name = "{} - Humidity".format(device.devicename)
         self._device = device
         self._state = None
@@ -91,6 +92,7 @@ class DigipowerTemperatureSensor(CoordinatorEntity, SensorEntity):
 
     def __init__(self, coordinator: DataUpdateCoordinator, entry_id: str, device: DigipowerPDU):
         """Initialize the sensor."""
+        super().__init__(coordinator=coordinator)
         self._name = "{} - Temperature".format(device.devicename)
         self._device = device
         self._state = None
@@ -129,6 +131,7 @@ class DigipowerCurrentSensor(CoordinatorEntity, SensorEntity):
 
     def __init__(self, coordinator: DataUpdateCoordinator, entry_id: str, device: DigipowerPDU):
         """Initialize the sensor."""
+        super().__init__(coordinator=coordinator)
         self._name = "{} - Current".format(device.devicename)
         self._device = device
         self._state = None
