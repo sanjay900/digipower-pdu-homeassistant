@@ -87,6 +87,7 @@ class DigipowerPDU:
         self.has_humidity = False
         self.has_temp = False
         self.initialised = False
+        self.port_names = []
 
     async def update(self):
         if self.has_humidity:
@@ -111,8 +112,8 @@ class DigipowerPDU:
         self.has_humidity = self.humidity != 0
         self.has_temp = self.temperature != 0
         self.port_count = int(await self._snmp_get(OIDs.SWITCH_COUNT.value)) + 1
-        self.switch_names = [
-            (await self._snmp_get(OIDs.SWITCH_NAME_BY_ID.value % port))
+        self.port_names = [
+            str(await self._snmp_get(OIDs.SWITCH_NAME_BY_ID.value % port))
             for port in range(1, self.port_count + 1)
         ]
 
@@ -152,3 +153,6 @@ class DigipowerPDU:
 
     def get_port_state(self, port: int):
         return self.active_ports[port]
+
+    def get_port_name(self, port: int):
+        return self.port_names[port]
