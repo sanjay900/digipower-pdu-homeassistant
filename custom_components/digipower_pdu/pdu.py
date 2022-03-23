@@ -1,5 +1,6 @@
 
 from enum import Enum
+import time
 import pysnmp.hlapi.asyncio as hlapi
 from pysnmp.hlapi.asyncio import (
     CommunityData,
@@ -88,6 +89,7 @@ class DigipowerPDU:
         self.has_temp = False
         self.initialised = False
         self.port_names = []
+        self.time_since_change = 0
 
     async def update(self):
         if self.has_humidity:
@@ -95,7 +97,9 @@ class DigipowerPDU:
         if self.has_temp:
             self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE.value)) or 0
         self.current = (int(await self._snmp_get(OIDs.CURRENT.value)) or 0) / 10.0
-        self.active_ports = [bool(int(x)) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
+        # The value doesn't update until the port itself is actually switched on, which takes a bit of time.
+        if time.time() - self.time_since_change > 15:
+            self.active_ports = [bool(int(x)) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
         return self
 
     async def init(self):
@@ -151,6 +155,7 @@ class DigipowerPDU:
                                 errindex and restable[-1][int(errindex) - 1] or "?")
 
     def get_port_state(self, port: int):
+        self.time_since_change = time.time()
         return self.active_ports[port]
 
     def get_port_name(self, port: int):
