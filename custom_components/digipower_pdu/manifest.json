@@ -1,0 +1,9 @@
+{
+  "domain": "digipower_pdu",
+  "name": "DigiPower UPS",
+  "documentation": "https://www.home-assistant.io/integrations/snmp",
+  "requirements": ["pysnmplib==5.0.10"],
+  "codeowners": [],
+  "version": "v1.0.0",
+  "iot_class": "local_polling"
+}
