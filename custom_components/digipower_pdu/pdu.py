@@ -95,6 +95,7 @@ class DigipowerPDU:
         self.model = ""
         self.model_short = ""
         self.model_number = ""
+        self.port_count = 0
         self.request_args = [
             SnmpEngine(),
             CommunityData(self.community, mpModel=SNMP_VERSIONS["1"]),
@@ -121,13 +122,14 @@ class DigipowerPDU:
         self.has_humidity = True
         self.has_temp = True
         await self.update()
-        self.mac = await self._snmp_get(OIDs.MAC) or 0
+        self.mac = await self._snmp_get(OIDs.MAC) or ""
         self.devicename = str(await self._snmp_get(OIDs.DEVICE_NAME)) or ""
         self.model = str(await self._snmp_get(OIDs.MODEL_NAME)) or ""
         self.model_number = str(await self._snmp_get(OIDs.MODEL_NUMBER)) or ""
         self.model_short = str(await self._snmp_get(OIDs.MODEL_NAME_SHORT)) or ""
         self.has_humidity = self.humidity != 0
         self.has_temp = self.temperature != 0
+        self.port_count = int(await self._snmp_get(OIDs.SWITCH_COUNT)) + 1
 
     async def _snmp_get(self, oid: OIDs):
         errindication, errstatus, errindex, restable = await getCmd(

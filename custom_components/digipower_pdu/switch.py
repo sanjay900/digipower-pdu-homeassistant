@@ -3,153 +3,69 @@ import logging
 
 import voluptuous as vol
 
-from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchEntity
-from homeassistant.const import (
-    DEVICE_CLASS_ENERGY,
-    DEVICE_CLASS_POWER,
-    CONF_HOST,
-    CONF_NAME,
-    CONF_PAYLOAD_OFF,
-    CONF_PAYLOAD_ON,
-    CONF_PORT,
-    CONF_USERNAME,
+from datetime import timedelta
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
 )
 import homeassistant.helpers.config_validation as cv
 
+import voluptuous as vol
+
+from homeassistant.components.switch import (
+    SwitchEntity,
+)
+
+from .pdu import DigipowerPDU
+
+import homeassistant.helpers.config_validation as cv
+
 from .const import (
-    CONF_AUTH_KEY,
-    CONF_AUTH_PROTOCOL,
-    CONF_BASEOID,
-    CONF_COMMUNITY,
-    CONF_PRIV_KEY,
-    CONF_PRIV_PROTOCOL,
-    CONF_VARTYPE,
-    CONF_VERSION,
-    DEFAULT_AUTH_PROTOCOL,
-    DEFAULT_HOST,
-    DEFAULT_NAME,
-    DEFAULT_PORT,
-    DEFAULT_PRIV_PROTOCOL,
-    DEFAULT_VARTYPE,
-    DEFAULT_VERSION,
-    MAP_AUTH_PROTOCOLS,
-    MAP_PRIV_PROTOCOLS,
-    SNMP_VERSIONS,
+    DOMAIN
 )
 
-
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Optional(CONF_COMMUNITY, default=DEFAULT_COMMUNITY): cv.string,
-        vol.Optional(CONF_HOST, default=DEFAULT_HOST): cv.string,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-        vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
-    }
-)
-
-
-async def async_get(request_args, oid):
-    errindication, errstatus, errindex, restable = await getCmd(
-        *request_args, ObjectType(ObjectIdentity(oid))
-    )
-    if errindication:
-        _LOGGER.error("SNMP error: %s", errindication)
-    elif errstatus:
-        _LOGGER.error(
-            "SNMP error: %s at %s",
-            errstatus.prettyPrint(),
-            errindex and restable[-1][int(errindex) - 1] or "?",
-        )
-    else:
-        return restable[0][-1]
-
-
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up the SNMP switch."""
-    name = config.get(CONF_NAME)
-    host = config.get(CONF_HOST)
-    port = config.get(CONF_PORT)
-    community = config.get(CONF_COMMUNITY)
-    request_args = [
-        SnmpEngine(),
-        CommunityData(community, mpModel=SNMP_VERSIONS["1"]),
-        UdpTransportTarget((host, port)),
-        ContextData(),
-    ]
-    switchCount = await async_get(request_args, "1.3.6.1.2.1.1.7.0") or 0
-    mac = await async_get(request_args, "1.3.6.1.4.1.17420.1.2.3.0") or 0
-    switches = []
-    devicename = str(await async_get(request_args, "1.3.6.1.2.1.1.5.0")) or ""
-    for x in range(1, switchCount + 2):
-        oid = "1.3.6.1.4.1.17420.1.2.9.1.14.%d.0" % x
-        name = str(((await async_get(request_args, oid)) or OctetString())).split(",")[
-            0
-        ]
-        switches.append(
-            SnmpSwitch(devicename + " - " + name, host, port, community, x - 1, mac)
-        )
-
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    sensor: DigipowerPDU = hass.data[DOMAIN][entry.entry_id].data
+    coordinator: DataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+        
     async_add_entities(
-        switches,
-        True,
+        DigipowerPort(coordinator, entry.entry_id, sensor, port)
+        for port in range(1, sensor.port_count + 1)
     )
 
 
-class SnmpSwitch(SwitchEntity):
-    """Representation of a SNMP switch."""
+class DigipowerPort(CoordinatorEntity, SwitchEntity):
+    """Representation of a digipower port."""
 
-    def __init__(self, name, host, port, community, id, mac):
-        """Initialize the switch."""
-
-        self._unique_id = "%s-%d" % (mac, id)
-
-        self._id = id
-        self._name = name
-
-        self._state = None
-        self._tempState = None
-        self._request_args = [
-            SnmpEngine(),
-            CommunityData(community, mpModel=SNMP_VERSIONS["1"]),
-            UdpTransportTarget((host, port)),
-            ContextData(),
-        ]
-
-    async def get_current(self):
-        errindication, errstatus, errindex, restable = await getCmd(
-            *self._request_args,
-            ObjectType(ObjectIdentity("1.3.6.1.4.1.17420.1.2.9.1.13.0")),
+    def __init__(self, coordinator: DataUpdateCoordinator, entry_id: str, device: DigipowerPDU, port: int):
+        """Initialize the sensor."""
+        self._name = "{} - Port {}".format(device.devicename, port)
+        self._device = device
+        self._port = port
+        self._unique_id = "{}_{}_port_{}".format(entry_id,device.mac,port)
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, device.mac)},
+            manufacturer="Digipower",
+            model=device.model_number,
+            name=device.devicename,
         )
-
-        if errindication:
-            _LOGGER.error("SNMP error: %s", errindication)
-        elif errstatus:
-            _LOGGER.error(
-                "SNMP error: %s at %s",
-                errstatus.prettyPrint(),
-                errindex and restable[-1][int(errindex) - 1] or "?",
-            )
-        else:
-            return str(restable[0][-1]).split(",")
 
     async def async_turn_on(self, **kwargs):
         """Turn on the switch."""
-        await self._set(True)
+        await self._device.set_port_state(self._port, True)
 
     async def async_turn_off(self, **kwargs):
         """Turn off the switch."""
-        await self._set(False)
-
-    async def async_update(self):
-        """Update the state."""
-        self._state = (await self.get_current())[self._id] == "1"
-        # It takes the PDU a while to update its state, so we want to force it when we toggle state.
-        if self._tempState != None:
-            if self._tempState == self._state:
-                self._tempState = None
-            else:
-                self._state = self._tempState
+        await self._device.set_port_state(self._port, False)
 
     @property
     def name(self):
@@ -163,16 +79,4 @@ class SnmpSwitch(SwitchEntity):
     @property
     def is_on(self):
         """Return true if switch is on; False if off. None if unknown."""
-        return self._state
-
-    async def _set(self, value):
-        self._tempState = value
-        current = await self.get_current()
-        current[self._id] = str(int(value))
-        await setCmd(
-            *self._request_args,
-            ObjectType(
-                ObjectIdentity("1.3.6.1.4.1.17420.1.2.9.1.13.0"),
-                OctetString(",".join(current)),
-            ),
-        )
+        return self._device.get_port_state(self._port)
