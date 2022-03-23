@@ -1,4 +1,4 @@
-
+import asyncio
 from enum import Enum
 import pysnmp.hlapi.asyncio as hlapi
 from pysnmp.hlapi.asyncio import (
@@ -88,16 +88,17 @@ class DigipowerPDU:
         self.has_temp = False
         self.initialised = False
         self.port_names = []
-        self.time = 0
+        self.lock = asyncio.Lock()
 
     async def update(self):
-        if self.has_humidity:
-            self.humidity = int(await self._snmp_get(OIDs.HUMIDITY.value)) or 0
-        if self.has_temp:
-            self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE.value)) or 0
-        self.current = (int(await self._snmp_get(OIDs.CURRENT.value)) or 0) / 10.0
-        self.active_ports = [bool(int(x)) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
-        return self
+        async with self.lock:
+            if self.has_humidity:
+                self.humidity = int(await self._snmp_get(OIDs.HUMIDITY.value)) or 0
+            if self.has_temp:
+                self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE.value)) or 0
+            self.current = (int(await self._snmp_get(OIDs.CURRENT.value)) or 0) / 10.0
+            self.active_ports = [bool(int(x)) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
+            return self
 
     async def init(self):
         self.has_humidity = True
@@ -134,22 +135,23 @@ class DigipowerPDU:
             return restable[0][-1]
 
     async def set_port_state(self, port: int, state: bool):
-        self.active_ports[port] = state
-        errindication, errstatus, errindex, restable = await setCmd(
-            self.dispatcher,
-            self.community_data,
-            self.transport_target,
-            self.context,
-            ObjectType(
-                ObjectIdentity(OIDs.ACTIVE_SWITCHES.value),
-                OctetString(",".join([str(int(x)) for x in self.active_ports])),
-            ),
-        )
-        if errindication:
-            raise SNMPException("SNMP error: {}".format(errindication))
-        elif errstatus:
-            raise SNMPException("SNMP error: {} at {}", errstatus.prettyPrint(),
-                                errindex and restable[-1][int(errindex) - 1] or "?")
+        async with self.lock:
+            self.active_ports[port] = state
+            errindication, errstatus, errindex, restable = await setCmd(
+                self.dispatcher,
+                self.community_data,
+                self.transport_target,
+                self.context,
+                ObjectType(
+                    ObjectIdentity(OIDs.ACTIVE_SWITCHES.value),
+                    OctetString(",".join([str(int(x)) for x in self.active_ports])),
+                ),
+            )
+            if errindication:
+                raise SNMPException("SNMP error: {}".format(errindication))
+            elif errstatus:
+                raise SNMPException("SNMP error: {} at {}", errstatus.prettyPrint(),
+                                    errindex and restable[-1][int(errindex) - 1] or "?")
 
     def get_port_state(self, port: int):
         return self.active_ports[port]
