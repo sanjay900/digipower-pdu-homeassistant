@@ -60,7 +60,7 @@ class DigipowerPDUFlowHandler(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Optional(CONF_COMMUNITY, default=DEFAULT_COMMUNITY): cv.string,
-                    vol.Optional(CONF_HOST, default=DEFAULT_HOST): cv.string,
+                    vol.Required(CONF_HOST): cv.string,
                     vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
                 }
             ),
