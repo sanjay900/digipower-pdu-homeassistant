@@ -91,14 +91,15 @@ class DigipowerPDU:
         self.lock = asyncio.Lock()
 
     async def update(self):
+        if self.has_humidity:
+            self.humidity = int(await self._snmp_get(OIDs.HUMIDITY.value)) or 0
+        if self.has_temp:
+            self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE.value)) or 0
+        self.current = (int(await self._snmp_get(OIDs.CURRENT.value)) or 0) / 10.0
+        active_ports = [bool(int(x)) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
         async with self.lock:
-            if self.has_humidity:
-                self.humidity = int(await self._snmp_get(OIDs.HUMIDITY.value)) or 0
-            if self.has_temp:
-                self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE.value)) or 0
-            self.current = (int(await self._snmp_get(OIDs.CURRENT.value)) or 0) / 10.0
-            self.active_ports = [bool(int(x)) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
-            return self
+            self.active_ports = active_ports
+        return self
 
     async def init(self):
         self.has_humidity = True
