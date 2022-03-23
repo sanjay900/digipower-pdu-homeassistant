@@ -27,30 +27,7 @@ from pysnmp.proto.rfc1902 import (
     Unsigned32,
 )
 
-
-from const import (
-    CONF_ACCEPT_ERRORS,
-    CONF_AUTH_KEY,
-    CONF_AUTH_PROTOCOL,
-    CONF_BASEOID,
-    CONF_COMMUNITY,
-    CONF_DEFAULT_VALUE,
-    CONF_PRIV_KEY,
-    CONF_PRIV_PROTOCOL,
-    CONF_VERSION,
-    DEFAULT_AUTH_PROTOCOL,
-    DEFAULT_COMMUNITY,
-    DEFAULT_HOST,
-    DEFAULT_NAME,
-    DEFAULT_PORT,
-    DEFAULT_PRIV_PROTOCOL,
-    DEFAULT_VERSION,
-    MAP_AUTH_PROTOCOLS,
-    MAP_PRIV_PROTOCOLS,
-    SNMP_VERSIONS,
-    ATTR_CURRENT,
-    LOGGER
-)
+SNMP_VERSIONS = {"1": 0, "2c": 1, "3": None}
 
 class SNMPException(Exception):
     def __init__(self, *args: object) -> None:
