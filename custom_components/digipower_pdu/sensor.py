@@ -154,7 +154,7 @@ class DigipowerCurrentSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        return self._device.temperature
+        return self._device.current
 
     @property
     def unique_id(self):
