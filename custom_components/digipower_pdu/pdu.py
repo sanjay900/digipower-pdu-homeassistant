@@ -84,8 +84,13 @@ class DigipowerPDU:
         self.transport_target = UdpTransportTarget((self.host, self.port))
         self.context = ContextData()
         self.names = []
+        self.has_humidity = False
+        self.has_temp = False
+        self.initialised = False
 
     async def update(self):
+        if not self.initialised:
+            await self.init()
         if self.has_humidity:
             self.humidity = int(await self._snmp_get(OIDs.HUMIDITY.value)) or 0
         if self.has_temp:
