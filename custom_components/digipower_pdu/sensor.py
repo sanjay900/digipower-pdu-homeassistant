@@ -15,6 +15,7 @@ import voluptuous as vol
 
 from homeassistant.components.sensor import (
     SensorEntity,
+    DOMAIN as COMPONENT_DOMAIN
 )
 
 from .pdu import DigipowerPDU
@@ -55,7 +56,7 @@ class DigipowerHumiditySensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator=coordinator)
         self._name = "{} - Humidity".format(device.devicename)
-        self.entity_id = "{}_humidity".format(device.devicename.lower().replace(" ",""))
+        self.entity_id = "{}.{}_humidity".format(COMPONENT_DOMAIN, device.devicename.lower().replace(" ",""))
         self._device = device
         self._state = None
         self._unit_of_measurement = "%"
@@ -95,7 +96,7 @@ class DigipowerTemperatureSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator=coordinator)
         self._name = "{} - Temperature".format(device.devicename)
-        self.entity_id = "{}_temperature".format(device.devicename.lower().replace(" ",""))
+        self.entity_id = "{}.{}_temperature".format(COMPONENT_DOMAIN, device.devicename.lower().replace(" ",""))
         self._device = device
         self._state = None
         self._unit_of_measurement = "°C"
@@ -135,7 +136,7 @@ class DigipowerCurrentSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator=coordinator)
         self._name = "{} - Current".format(device.devicename)
-        self.entity_id = "{}_current".format(device.devicename.lower().replace(" ",""))
+        self.entity_id = "{}.{}_current".format(COMPONENT_DOMAIN, device.devicename.lower().replace(" ",""))
         self._device = device
         self._state = None
         self._unit_of_measurement = "A"
