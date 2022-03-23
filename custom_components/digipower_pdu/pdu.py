@@ -113,7 +113,7 @@ class DigipowerPDU:
         self.has_temp = self.temperature != 0
         self.port_count = int(await self._snmp_get(OIDs.SWITCH_COUNT.value)) + 1
         self.port_names = [
-            str(await self._snmp_get(OIDs.SWITCH_NAME_BY_ID.value % port))
+            str(await self._snmp_get(OIDs.SWITCH_NAME_BY_ID.value % port)).split(",")[0]
             for port in range(1, self.port_count + 1)
         ]
 

@@ -39,7 +39,7 @@ async def async_setup_entry(
         
     async_add_entities(
         DigipowerPort(coordinator, entry.entry_id, sensor, port)
-        for port in range(1, sensor.port_count + 1)
+        for port in range(sensor.port_count)
     )
 
 
