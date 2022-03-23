@@ -116,7 +116,6 @@ class DigipowerPDU:
             str(await self._snmp_get(OIDs.SWITCH_NAME_BY_ID.value % port))
             for port in range(1, self.port_count + 1)
         ]
-        print(self.port_names)
 
     async def _snmp_get(self, oid: str):
         errindication, errstatus, errindex, restable = await getCmd(
