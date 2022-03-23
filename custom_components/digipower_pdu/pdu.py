@@ -103,7 +103,7 @@ class DigipowerPDU:
         self.has_temp = True
         self.initialised = True
         await self.update()
-        self.mac = await self._snmp_get(OIDs.MAC.value) or ""
+        self.mac = str(await self._snmp_get(OIDs.MAC.value)) or ""
         self.devicename = str(await self._snmp_get(OIDs.DEVICE_NAME.value)) or ""
         self.model = str(await self._snmp_get(OIDs.MODEL_NAME.value)) or ""
         self.model_number = str(await self._snmp_get(OIDs.MODEL_NUMBER.value)) or ""
