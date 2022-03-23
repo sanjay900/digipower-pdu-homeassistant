@@ -133,7 +133,7 @@ class DigipowerPDU:
             return restable[0][-1]
 
     async def set_port_state(self, port: int, state: bool):
-        self.active_ports[port] = str(int(state))
+        self.active_ports[port] = state
         errindication, errstatus, errindex, restable = await setCmd(
             self.dispatcher,
             self.community_data,
