@@ -89,8 +89,6 @@ class DigipowerPDU:
         self.initialised = False
 
     async def update(self):
-        if not self.initialised:
-            await self.init()
         if self.has_humidity:
             self.humidity = int(await self._snmp_get(OIDs.HUMIDITY.value)) or 0
         if self.has_temp:

@@ -23,6 +23,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     port = entry.data[CONF_PORT]
     community = entry.data[CONF_COMMUNITY]
     sensor = DigipowerPDU(host, port, community)
+    sensor.init()
     pdu_update: DataUpdateCoordinator[DigipowerPDU] = DataUpdateCoordinator(
         hass,
         LOGGER,
