@@ -141,7 +141,7 @@ class DigipowerPDU:
             self.context,
             ObjectType(
                 ObjectIdentity(OIDs.ACTIVE_SWITCHES.value),
-                OctetString(",".join(self.active_ports)),
+                OctetString(",".join([str(int(x)) for x in self.active_ports])),
             ),
         )
         if errindication:
