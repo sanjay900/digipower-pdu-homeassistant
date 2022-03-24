@@ -77,6 +77,7 @@ class DigipowerPDU:
         self.initialised = False
         self.port_names = []
         self.changed_ports = []
+        self.active_ports = []
 
     async def update(self):
         if self.has_humidity:
@@ -104,8 +105,6 @@ class DigipowerPDU:
             elif errstatus:
                 raise SNMPException("SNMP error: {} at {}", errstatus.prettyPrint(),
                                     errindex and restable[-1][int(errindex) - 1] or "?")
-        
-        self.active_ports = [bool(int(x)) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
         return self
 
     async def init(self):
@@ -144,6 +143,7 @@ class DigipowerPDU:
 
     def set_port_state(self, port: int, state: bool):
         self.changed_ports.append((port, state))
+        self.active_ports[port] = state
 
     def get_port_state(self, port: int):
         return self.active_ports[port]
