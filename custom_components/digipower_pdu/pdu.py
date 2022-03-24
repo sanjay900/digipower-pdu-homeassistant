@@ -1,4 +1,3 @@
-import asyncio
 from enum import Enum
 import pysnmp.hlapi.asyncio as hlapi
 from pysnmp.hlapi.asyncio import (
@@ -8,23 +7,11 @@ from pysnmp.hlapi.asyncio import (
     ObjectType,
     SnmpEngine,
     UdpTransportTarget,
-    UsmUserData,
     getCmd,
     setCmd
 )
 from pysnmp.proto.rfc1902 import (
-    Counter32,
-    Counter64,
-    Gauge32,
-    Integer,
-    Integer32,
-    IpAddress,
-    Null,
-    ObjectIdentifier,
     OctetString,
-    Opaque,
-    TimeTicks,
-    Unsigned32,
 )
 
 SNMP_VERSIONS = {"1": 0, "2c": 1, "3": None}
@@ -58,7 +45,8 @@ class OIDs(Enum):
     MAIN_ENERGY = "1.3.6.1.4.1.17420.1.3.6.0"
     ACCUMLATING_ENERGY = "1.3.6.1.4.1.17420.1.3.8.0"
     CARBON_EMMISION_RATE = "1.3.6.1.4.1.17420.1.3.10.0"
-    SWITCH_NAME_BY_ID = "1.3.6.1.4.1.17420.1.2.9.1.14.%d.0"  
+    SWITCH_NAME_BY_ID = "1.3.6.1.4.1.17420.1.2.9.1.14.%d.0"
+
 
 class DigipowerPDU:
     def __init__(self, host, port, community) -> None:
@@ -88,7 +76,7 @@ class DigipowerPDU:
         self.has_temp = False
         self.initialised = False
         self.port_names = []
-        self.lock = asyncio.Lock()
+        self.changed_ports = []
 
     async def update(self):
         if self.has_humidity:
@@ -97,6 +85,26 @@ class DigipowerPDU:
             self.temperature = int(await self._snmp_get(OIDs.TEMPERATURE.value)) or 0
         self.current = (int(await self._snmp_get(OIDs.CURRENT.value)) or 0) / 10.0
         self.active_ports = [bool(int(x)) for x in str(await self._snmp_get(OIDs.ACTIVE_SWITCHES.value)).split(",")]
+        if self.changed_ports:
+            for port, state in self.changed_ports:
+                self.active_ports[port] = state
+            self.changed_ports = []
+            errindication, errstatus, errindex, restable = await setCmd(
+                self.dispatcher,
+                self.community_data,
+                self.transport_target,
+                self.context,
+                ObjectType(
+                    ObjectIdentity(OIDs.ACTIVE_SWITCHES.value),
+                    OctetString(",".join([str(int(x))
+                                for x in self.active_ports])),
+                ),
+            )
+            if errindication:
+                raise SNMPException("SNMP error: {}".format(errindication))
+            elif errstatus:
+                raise SNMPException("SNMP error: {} at {}", errstatus.prettyPrint(),
+                                    errindex and restable[-1][int(errindex) - 1] or "?")
         return self
 
     async def init(self):
@@ -133,24 +141,8 @@ class DigipowerPDU:
         else:
             return restable[0][-1]
 
-    async def set_port_state(self, port: int, state: bool):
-        self.active_ports[port] = state
-        errindication, errstatus, errindex, restable = await setCmd(
-            self.dispatcher,
-            self.community_data,
-            self.transport_target,
-            self.context,
-            ObjectType(
-                ObjectIdentity(OIDs.ACTIVE_SWITCHES.value),
-                OctetString(",".join([str(int(x)) for x in self.active_ports])),
-            ),
-        )
-        if errindication:
-            raise SNMPException("SNMP error: {}".format(errindication))
-        elif errstatus:
-            raise SNMPException("SNMP error: {} at {}", errstatus.prettyPrint(),
-                                errindex and restable[-1][int(errindex) - 1] or "?")
-        self.active_ports[port] = state
+    def set_port_state(self, port: int, state: bool):
+        self.changed_ports.append((port, state))
 
     def get_port_state(self, port: int):
         return self.active_ports[port]

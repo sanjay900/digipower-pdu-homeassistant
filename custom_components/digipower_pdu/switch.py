@@ -62,13 +62,13 @@ class DigipowerPort(CoordinatorEntity, SwitchEntity):
             name=device.devicename,
         )
 
-    async def async_turn_on(self, **kwargs):
+    def turn_on(self, **kwargs):
         """Turn on the switch."""
-        await self._device.set_port_state(self._port, True)
+        self._device.set_port_state(self._port, True)
 
-    async def async_turn_off(self, **kwargs):
+    def turn_off(self, **kwargs):
         """Turn off the switch."""
-        await self._device.set_port_state(self._port, False)
+        self._device.set_port_state(self._port, False)
 
     @property
     def name(self):
